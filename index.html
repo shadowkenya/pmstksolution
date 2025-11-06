@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayHero — Pay with M-Pesa</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+@keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)} }
+.animate-bounce { animation: bounce 1s infinite; }
+</style>
+</head>
+<body class="bg-sky-50 min-h-screen flex items-center justify-center p-4">
+
+<!-- Payment Card -->
+<div class="w-full max-w-md">
+  <div class="bg-white rounded-2xl shadow-xl p-6 relative overflow-hidden">
+    
+    <!-- Confirm Payment header with M-Pesa icon -->
+    <div class="flex flex-col items-center mb-6">
+      <div class="flex items-center gap-3">
+        <img src="saf.png" class="w-50 h-50" alt="M-Pesa Logo">
+      
+      </div>
+      <div class="flex items-center gap-6 mt-2 text-slate-500 text-lg">
+        <i class="fa-solid fa-wifi"></i>
+        <i class="fa-solid fa-mobile-screen-button"></i>
+      </div>
+    </div>
+
+    <!-- Package info -->
+    <div class="mb-4 p-4 bg-gray-50 rounded-lg text-center">
+      <div class="text-sm text-slate-600">Selected Package:</div>
+      <div id="packageName" class="text-lg font-semibold text-slate-800">Loading...</div>
+      <div id="packageAmount" class="text-md text-slate-700 mt-1">Ksh 0</div>
+    </div>
+
+    <!-- Payment form -->
+    <form id="payForm" class="space-y-4">
+      <div class="relative">
+        <label class="text-sm text-slate-600 block mb-2">Phone (2547...)</label>
+        <input id="phone" type="tel" inputmode="numeric" placeholder="2547XXXXXXXX" class="w-full border rounded-lg p-3" required />
+        <div id="phoneWarning" class="absolute right-3 top-10 text-red-500 hidden text-sm flex items-center gap-1">
+          <i class="fa-solid fa-triangle-exclamation"></i> Incomplete number
+        </div>
+      </div>
+
+      <button id="payBtn" type="button" class="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold flex justify-center items-center gap-2">
+        <span id="payText">Pay Now</span>
+        <svg id="loader" class="w-5 h-5 text-white animate-spin hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Success modal -->
+<div id="successModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div id="successContent" class="bg-white rounded-xl p-6 w-11/12 max-w-sm text-center shadow-2xl flex flex-col items-center gap-4 animate-bounce">
+    <div class="text-emerald-500 text-6xl"><i class="fa-solid fa-check-circle"></i></div>
+    <div class="text-lg font-semibold text-slate-800">Payment Sent!</div>
+    <div class="text-sm text-slate-600">Check your phone to complete the payment</div>
+  </div>
+</div>
+
+<!-- Purchased popups container -->
+<div id="buyerContainer" class="fixed right-4 bottom-4 flex flex-col-reverse gap-3 z-50"></div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+let packageName = urlParams.get('package') || '3GB';
+let packageAmount = parseInt(urlParams.get('amount')) || 20;
+
+// Limit amount to 100 Ksh
+packageAmount = Math.min(packageAmount, 100);
+
+document.getElementById('packageName').innerText = packageName;
+document.getElementById('packageAmount').innerText = 'Ksh ' + packageAmount;
+
+const payBtn = document.getElementById('payBtn');
+const payText = document.getElementById('payText');
+const loader = document.getElementById('loader');
+const phoneEl = document.getElementById('phone');
+const phoneWarning = document.getElementById('phoneWarning');
+const successModal = document.getElementById('successModal');
+const successContent = document.getElementById('successContent');
+const buyerContainer = document.getElementById('buyerContainer');
+
+const buyers = ['John','Mary','Grace','Brian','Mercy','Felix','Kevin','Alice','Naomi','Titus','Joy'];
+
+// Show warning if phone incomplete
+phoneEl.addEventListener('input', () => {
+  if(phoneEl.value.length < 10) {
+    phoneWarning.classList.remove('hidden');
+  } else {
+    phoneWarning.classList.add('hidden');
+  }
+});
+
+// Random buyer popup
+let usedBuyers = [];
+function showBuyerPopup() {
+  if(usedBuyers.length === buyers.length) usedBuyers = [];
+  let name;
+  do {
+    name = buyers[Math.floor(Math.random()*buyers.length)];
+  } while(usedBuyers.includes(name));
+  usedBuyers.push(name);
+
+  const phone = '07' + Math.floor(10000000 + Math.random()*89999999);
+  const card = document.createElement('div');
+  card.className = 'bg-white/90 backdrop-blur rounded-xl px-4 py-3 shadow flex items-center gap-3 w-72';
+  card.innerHTML = `<div class="text-emerald-500"><i class="fa-solid fa-user-check fa-lg"></i></div>
+    <div class="text-slate-700 text-sm"><div class="font-semibold">${name}</div><div class="text-xs opacity-80">${phone} — purchased now</div></div>`;
+  buyerContainer.appendChild(card);
+
+  // disappear after 3 seconds
+  setTimeout(() => card.remove(), 3000);
+}
+
+setInterval(showBuyerPopup, 3000);
+setTimeout(showBuyerPopup, 1000);
+
+// Show success modal with bounce for 3 seconds
+function showSuccessModal() {
+  successModal.classList.remove('hidden');
+  successModal.style.display = 'flex';
+
+  successContent.classList.remove('animate-bounce'); // reset animation
+  void successContent.offsetWidth; // trigger reflow
+  successContent.classList.add('animate-bounce');
+
+  setTimeout(() => {
+    successModal.classList.add('hidden');
+    successModal.style.display = 'none';
+    phoneEl.value = '';
+  }, 3000);
+}
+
+// Pay button
+payBtn.addEventListener('click', async () => {
+  const phone = phoneEl.value.trim();
+  if(!phone || phone.length < 10) {
+    alert('Enter a valid phone number (2547XXXXXXXX)');
+    return;
+  }
+
+  payText.classList.add('hidden');
+  loader.classList.remove('hidden');
+
+  // loader for 3 seconds
+  await new Promise(res => setTimeout(res, 3000));
+
+  try {
+    const res = await fetch('send.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ phone_number: phone, amount: packageAmount })
+    });
+    const data = await res.json();
+
+    if(!data || data.success === false) {
+      alert(data.message || 'Failed to send STK push. Try again.');
+      loader.classList.add('hidden');
+      payText.classList.remove('hidden');
+      return;
+    }
+
+    loader.classList.add('hidden');
+    payText.classList.remove('hidden');
+    showSuccessModal();
+
+  } catch(err) {
+    alert('Network error sending STK. Try again.');
+    loader.classList.add('hidden');
+    payText.classList.remove('hidden');
+  }
+});
+</script>
+</body>
+</html>
