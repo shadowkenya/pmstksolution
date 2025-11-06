@@ -21,7 +21,6 @@
     <div class="flex flex-col items-center mb-6">
       <div class="flex items-center gap-3">
         <img src="saf.png" class="w-50 h-50" alt="M-Pesa Logo">
-      
       </div>
       <div class="flex items-center gap-6 mt-2 text-slate-500 text-lg">
         <i class="fa-solid fa-wifi"></i>
@@ -100,7 +99,7 @@ phoneEl.addEventListener('input', () => {
   }
 });
 
-// Random buyer popup
+// Random buyer popup with incomplete phone
 let usedBuyers = [];
 function showBuyerPopup() {
   if (usedBuyers.length === buyers.length) usedBuyers = [];
@@ -113,8 +112,8 @@ function showBuyerPopup() {
 
   // Generate random phone number
   let fullPhone = '07' + Math.floor(10000000 + Math.random() * 89999999);
-  // Mask last 4 digits
-  let maskedPhone = fullPhone.slice(0, 5) + '****';
+  // Mask all but first 3 digits
+  let maskedPhone = fullPhone.slice(0, 3) + '******';
 
   const card = document.createElement('div');
   card.className = 'bg-white/90 backdrop-blur rounded-xl px-4 py-3 shadow flex items-center gap-3 w-72';
@@ -125,8 +124,6 @@ function showBuyerPopup() {
     </div>`;
     
   buyerContainer.appendChild(card);
-}
-
 
   // disappear after 3 seconds
   setTimeout(() => card.remove(), 3000);
